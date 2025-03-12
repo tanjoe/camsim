@@ -156,10 +156,13 @@ def computeCircleCoordinates(json_path: str, board_mesh: pyrender.Mesh) -> np.nd
         start_y = board_mesh.bounds[0][1]
 
         for c in centers:
+            # When a circle is drawn with center at (1, 1) in OpenCV, its actual PIXEL DISTANCE to the left
+            # corner is (1.5, 1.5). So take care of the 0.5 here
+            u = c[0] + 0.5
             # Flip y to make it follows OpenGL convention (+Y should be upward)
-            c[1] = image_size[1] - c[1]
-            x = start_x + c[0] * width_ratio
-            y = start_y + c[1] * height_ratio
+            v = image_size[1] - c[1] - 0.5
+            x = start_x + u * width_ratio
+            y = start_y + v * height_ratio
             coordinates.append([x, y, 0])
     return np.array(coordinates)
 
