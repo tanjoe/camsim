@@ -6,7 +6,7 @@ import trimesh
 import json
 import numpy as np
 import pyglet
-from pyrender.constants import GLTF
+import matplotlib.pyplot as plt
 
 
 def projectWorldToImage(
@@ -23,6 +23,46 @@ def projectWorldToImage(
     y = camera.cy - (camera.fy * Y) / -Z
 
     return (x, y)
+
+
+def draw_crosses_on_image(image_path: str, truth_json_path: str):
+    image = cv2.imread(image_path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    with open(truth_json_path, "r") as f:
+        truth_data = json.load(f)
+
+    fig, ax = plt.subplots()
+    ax.imshow(image)
+
+    cross_size = 2
+    truth_cross_color = (0, 1, 0)
+    for i, center in enumerate(truth_data):
+        x, y = float(center[0]), float(center[1])
+        # Draw a cross for the truth position
+        ax.plot(
+            [x - cross_size, x + cross_size],
+            [y, y],
+            color=truth_cross_color,
+            linewidth=1,
+        )
+        ax.plot(
+            [x, x],
+            [y - cross_size, y + cross_size],
+            color=truth_cross_color,
+            linewidth=1,
+        )
+        ax.text(
+            x,
+            y - 5,
+            str(i),
+            color="yellow",
+            fontsize=8,
+            ha="center",
+            va="center",
+        )
+
+    plt.show()
 
 
 class MyViewer(pyrender.Viewer):
@@ -68,6 +108,10 @@ class MyViewer(pyrender.Viewer):
             with open(f"output/{timestamp}-loc_truth.json", "w") as truth_file:
                 json.dump(loc_truth, truth_file, indent=4)
 
+            draw_crosses_on_image(
+                f"output/{timestamp}.png", f"output/{timestamp}-loc_truth.json"
+            )
+
         return super().on_key_press(symbol, modifiers)
 
 
@@ -75,14 +119,7 @@ def createBoard(image_path: str) -> pyrender.Mesh:
     # Create a texture from the image
     image = cv2.imread(image_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    sampler = pyrender.Sampler(
-        magFilter=GLTF.NEAREST,
-        minFilter=None,
-        wrapS=GLTF.CLAMP_TO_EDGE,
-        wrapT=GLTF.CLAMP_TO_EDGE,
-    )
     texture = pyrender.Texture(
-        sampler=sampler,
         source=image,
         source_channels="RGB",
         width=image.shape[1],
